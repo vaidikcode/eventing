@@ -71,8 +71,8 @@ func TriggerDependencyAnnotation() *feature.Feature {
 	// Install the trigger
 	f.Setup("install trigger", trigger.Install(triggerName, cfg...))
 
-	// trigger won't go ready until after the pingsource exists, because of the dependency annotation
-	f.Requirement("trigger goes ready", trigger.IsReady(triggerName))
+	// verify trigger reports it's not ready because dependency is missing
+	f.Setup("verify trigger is not ready", trigger.IsNotReady(triggerName))
 
 	f.Requirement("install pingsource", func(ctx context.Context, t feature.T) {
 		brokeruri, err := broker.Address(ctx, brokerName)
@@ -87,6 +87,8 @@ func TriggerDependencyAnnotation() *feature.Feature {
 		pingsource.Install(psourcename, cfg...)(ctx, t)
 	})
 	f.Requirement("PingSource goes ready", pingsource.IsReady(psourcename))
+
+	f.Requirement("trigger becomes ready", trigger.IsReady(triggerName))
 
 	f.Stable("pingsource as event source to test trigger with annotations").
 		Must("delivers events on broker with URI", assert.OnStore(sink).MatchEvent(
